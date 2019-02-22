@@ -4,7 +4,7 @@ import gym
 import time
 import spinup.algos.vpg.core as core
 from spinup.utils.logx import EpochLogger
-from spinup.utils.mpi_tf import MpiAdamOptimizer, sync_all_params
+from spinup.utils.mpi_tf import MpiOptimizer, sync_all_params
 from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
 
 
@@ -196,8 +196,8 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     approx_ent = tf.reduce_mean(-logp)                  # a sample estimate for entropy, also easy to compute
 
     # Optimizers
-    train_pi = MpiAdamOptimizer(learning_rate=pi_lr).minimize(pi_loss)
-    train_v = MpiAdamOptimizer(learning_rate=vf_lr).minimize(v_loss)
+    train_pi = MpiOptimizer(learning_rate=pi_lr).minimize(pi_loss)
+    train_v = MpiOptimizer(learning_rate=vf_lr).minimize(v_loss)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())

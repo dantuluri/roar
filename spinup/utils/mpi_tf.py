@@ -26,6 +26,446 @@ def sync_all_params():
     return sync_params(tf.global_variables())
 
 
+class MpiAdadeltaOptimizer(tf.train.AdadeltaOptimizer):
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.AdadeltaOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+
+
+class MpiAdagradDAOptimizer(tf.train.AdagradDAOptimizer):
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.AdagradDAOptimizer.__init__(self, **kwargs)
+        print("AdagradDA Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+
+class MpiAdagradOptimizer(tf.train.AdagradOptimizer):
+    """
+    Adam optimizer that averages gradients across MPI processes.
+
+    The compute_gradients method is taken from Baselines `MpiAdamOptimizer`_. 
+    For documentation on method arguments, see the Tensorflow docs page for 
+    the base `AdamOptimizer`_.
+
+    .. _`MpiAdamOptimizer`: https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam_optimizer.py
+    .. _`AdamOptimizer`: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+    """
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.AdagradOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+class MpiFtrlOptimizer(tf.train.FtrlOptimizer):
+    """
+    Adam optimizer that averages gradients across MPI processes.
+
+    The compute_gradients method is taken from Baselines `MpiAdamOptimizer`_. 
+    For documentation on method arguments, see the Tensorflow docs page for 
+    the base `AdamOptimizer`_.
+
+    .. _`MpiAdamOptimizer`: https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam_optimizer.py
+    .. _`AdamOptimizer`: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+    """
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.FtrlOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+class MpiGradientDescentOptimizer(tf.train.GradientDescentOptimizer):
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.GradientDescentOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+class MpiMomentumOptimizertf.train.MomentumOptimizer):
+    """
+    Adam optimizer that averages gradients across MPI processes.
+
+    The compute_gradients method is taken from Baselines `MpiAdamOptimizer`_. 
+    For documentation on method arguments, see the Tensorflow docs page for 
+    the base `AdamOptimizer`_.
+
+    .. _`MpiAdamOptimizer`: https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam_optimizer.py
+    .. _`AdamOptimizer`: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+    """
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.MomentumOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+class MpiOptimizer(tf.train.Optimizer):
+    """
+    Adam optimizer that averages gradients across MPI processes.
+
+    The compute_gradients method is taken from Baselines `MpiAdamOptimizer`_. 
+    For documentation on method arguments, see the Tensorflow docs page for 
+    the base `AdamOptimizer`_.
+
+    .. _`MpiAdamOptimizer`: https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam_optimizer.py
+    .. _`AdamOptimizer`: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+    """
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.Optimizer.__init__(self, **kwargs)
+        print("Optimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+class MpiAdamOptimizer(tf.train.AdadeltaOptimizer):
+    """
+    Adam optimizer that averages gradients across MPI processes.
+
+    The compute_gradients method is taken from Baselines `MpiAdamOptimizer`_. 
+    For documentation on method arguments, see the Tensorflow docs page for 
+    the base `AdamOptimizer`_.
+
+    .. _`MpiAdamOptimizer`: https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam_optimizer.py
+    .. _`AdamOptimizer`: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+    """
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.AdadeltaOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
+class MpiAdamOptimizer(tf.train.AdadeltaOptimizer):
+    """
+    Adam optimizer that averages gradients across MPI processes.
+
+    The compute_gradients method is taken from Baselines `MpiAdamOptimizer`_. 
+    For documentation on method arguments, see the Tensorflow docs page for 
+    the base `AdamOptimizer`_.
+
+    .. _`MpiAdamOptimizer`: https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam_optimizer.py
+    .. _`AdamOptimizer`: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+    """
+
+    def __init__(self, **kwargs):
+        self.comm = MPI.COMM_WORLD
+        tf.train.AdadeltaOptimizer.__init__(self, **kwargs)
+        print("AdadeltaOptimizer Called")        
+
+    def compute_gradients(self, loss, var_list, **kwargs):
+        """
+        Same as normal compute_gradients, except average grads over processes.
+        """
+        grads_and_vars = super().compute_gradients(loss, var_list, **kwargs)
+        grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        flat_grad = flat_concat([g for g, v in grads_and_vars])
+        shapes = [v.shape.as_list() for g, v in grads_and_vars]
+        sizes = [int(np.prod(s)) for s in shapes]
+
+        num_tasks = self.comm.Get_size()
+        buf = np.zeros(flat_grad.shape, np.float32)
+
+        def _collect_grads(flat_grad):
+            self.comm.Allreduce(flat_grad, buf, op=MPI.SUM)
+            np.divide(buf, float(num_tasks), out=buf)
+            return buf
+
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad.set_shape(flat_grad.shape)
+        avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
+        avg_grads_and_vars = [(tf.reshape(g, v.shape), v)
+                    for g, (_, v) in zip(avg_grads, grads_and_vars)]
+
+        return avg_grads_and_vars
+
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        """
+        Same as normal apply_gradients, except sync params after update.
+        """
+        opt = super().apply_gradients(grads_and_vars, global_step, name)
+        with tf.control_dependencies([opt]):
+            sync = sync_params([v for g,v in grads_and_vars])
+        return tf.group([opt, sync])
+
 class MpiAdamOptimizer(tf.train.AdadeltaOptimizer):
     """
     Adam optimizer that averages gradients across MPI processes.

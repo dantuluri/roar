@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import tensorflow as tf
 import gym
 import time
@@ -197,16 +198,34 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
 
     # Optimizers
     print("learning rate",pi_lr," ",vf_lr)
-    train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
-    beta2=0.999,
-    epsilon=1e-08,
+    train_pi = MpiAdamOptimizer(global_step=0,
+    max_matrix_size=768,
+    gbar_decay=0.0,
+    gbar_weight=1.0,
+    mat_gbar_decay=1.0,
+    mat_gbar_weight=1.0,
+    learning_rate=1.0,
+    svd_interval=1,
+    precond_update_interval=1,
+    epsilon=0.0001,
+    alpha=0.5,
+    use_iterative_root=False,
     use_locking=False,
-    name='Adam').minimize(pi_loss)
-    train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
-    beta2=0.999,
-    epsilon=1e-08,
+    name='Shampoo').minimize(pi_loss)
+    train_v = MpiAdamOptimizer(global_step=0,
+    max_matrix_size=768,
+    gbar_decay=0.0,
+    gbar_weight=1.0,
+    mat_gbar_decay=1.0,
+    mat_gbar_weight=1.0,
+    learning_rate=1.0,
+    svd_interval=1,
+    precond_update_interval=1,
+    epsilon=0.0001,
+    alpha=0.5,
+    use_iterative_root=False,
     use_locking=False,
-    name='Adam').minimize(v_loss)
+    name='Shampoo').minimize(v_loss)
 
 
 

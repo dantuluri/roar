@@ -152,7 +152,7 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
             the current policy and value function.
 
     """
-    print('OPTIMIZER: ',optimizer)
+    print('Optimizer VPG qwe: ',optimizer)
     logger = EpochLogger(**logger_kwargs)
     logger.save_config(locals())
 
@@ -207,6 +207,102 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         use_locking=False,
         name='Adadelta').minimize(v_loss)
 
+
+    if optimizer=="AdadeltaOptimizer":
+        train_pi = MpiAdadeltaOptimizer(learning_rate=pi_lr,rho=0.95,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adadelta').minimize(pi_loss)
+        train_v = MpiAdadeltaOptimizer(learning_rate=vf_lr,rho=0.95,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adadelta').minimize(v_loss)
+    elif optimizer=="AdagradOptimizer":
+        train_pi = MpiAdagradOptimizer(learning_rate=pi_lr,initial_accumulator_value=0.1,
+        use_locking=False,
+        name='Adagrad').minimize(pi_loss)
+        train_v = MpiAdagradOptimizer(learning_rate=vf_lr,initial_accumulator_value=0.1,
+        use_locking=False,
+        name='Adagrad').minimize(v_loss)
+    elif optimizer=="AdamOptimizer":
+        train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(pi_loss)
+        train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(v_loss)
+    elif optimizer=="FtrlOptimizer":
+        train_pi = MpiFtrlOptimizer(learning_rate=pi_lr,            learning_rate_power=-0.5,
+        initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='Ftrl',
+        accum_name=None,
+        linear_name=None,
+        l2_shrinkage_regularization_strength=0.0).minimize(pi_loss)
+        train_v = MpiFtrlOptimizer(learning_rate=vf_lr,            learning_rate_power=-0.5,
+        initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='Ftrl',
+        accum_name=None,
+        linear_name=None,
+        l2_shrinkage_regularization_strength=0.0).minimize(v_loss)
+    elif optimizer=="GradientDescentOptimizer":
+        train_pi = MpiGradientDescentOptimizer(learning_rate=pi_lr, use_locking=False,
+        name='GradientDescent').minimize(pi_loss)
+        train_v = MpiGradientDescentOptimizer(learning_rate=vf_lr, use_locking=False,
+        name='GradientDescent').minimize(v_loss)
+    elif optimizer=="MomentumOptimizer":
+        train_pi = MpiMomentumOptimizer(learning_rate=pi_lr,momentum=0.01,
+        use_locking=False,
+        name='Momentum',
+        use_nesterov=False).minimize(pi_loss)
+        train_v = MpiMomentumOptimizer(learning_rate=vf_lr,momentum=0.01,
+        use_locking=False,
+        name='Momentum',
+        use_nesterov=False).minimize(v_loss)
+    elif optimizer=="ProximalAdagradOptimizer":
+        train_pi = MpiProximalAdagradOptimizer(learning_rate=pi_lr,    initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalAdagrad' ).minimize(pi_loss)
+        train_v = MpiProximalAdagradOptimizer(learning_rate=vf_lr,    initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalAdagrad').minimize(v_loss)
+    elif optimizer=="ProximalGradientDescentOptimizer":
+        train_pi = MpiProximalGradientDescentOptimizer(learning_rate=pi_lr,             l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalGradientDescent').minimize(pi_loss)
+        train_v = MpiProximalGradientDescentOptimizer(learning_rate=vf_lr,            l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalGradientDescent').minimize(v_loss)
+    elif optimizer=="RMSPropOptimizer":
+        train_pi = MpiProximalGradientDescentOptimizer(learning_rate=pi_lr,             l1_regularization_strength=0.0,
+            decay=0.9,
+        momentum=0.0,
+        epsilon=1e-10,
+        use_locking=False,
+        centered=False,
+        name='RMSProp').minimize(pi_loss)
+        train_v = MpiProximalGradientDescentOptimizer(learning_rate=vf_lr,            l1_regularization_strength=0.0,
+            decay=0.9,
+        momentum=0.0,
+        epsilon=1e-10,
+        use_locking=False,
+        centered=False,
+        name='RMSProp').minimize(v_loss)
 
 
     sess = tf.Session()

@@ -412,17 +412,13 @@ class MpiRMSPropOptimizer(tf.train.RMSPropOptimizer):
             sync = sync_params([v for g,v in grads_and_vars])
         return tf.group([opt, sync])
 
-class AdaMaxOptimizer(tf.contrib.opt.AdaMaxOptimizer):
+class MpiAdaMaxOptimizer(tf.contrib.opt.AdaMaxOptimizer):
 
     def __init__(self, **kwargs):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.AdaMaxOptimizer.__init__(self, **kwargs)
         print("tf.contrib.opt.AdaMaxOptimizer Called") 
-        #     beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='AdaMax'    
+         
 
     def compute_gradients(self, loss, var_list, **kwargs):
         """
@@ -465,13 +461,7 @@ class MpiAdamGSOptimizer(tf.contrib.opt.AdamGSOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.AdamGSOptimizer.__init__(self, **kwargs)
         print("tf.contrib.opt.AdamGSOptimizer Called")     
-        #     global_step=0,
-        # learning_rate=0.001,
-        # beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam'   
+        
 
     def compute_gradients(self, loss, var_list, **kwargs):
         """
@@ -514,13 +504,7 @@ class MpiAdamWOptimizer(tf.contrib.opt.AdamWOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.AdamWOptimizer.__init__(self, **kwargs)
         print("tf.train.AdamWOptimizer Called")    
-        #     weight_decay,
-        # learning_rate=0.001,
-        # beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='AdamW'
+        
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -564,11 +548,7 @@ class MpiAddSignOptimizer(tf.contrib.opt.AddSignOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.AddSignOptimizer.__init__(self, **kwargs)
         print("tf.train.AddSignOptimizer Called")    
-        #    alpha=1.0,
-        # beta=0.9,
-        # sign_decay_fn=None,
-        # use_locking=False,
-        # name='AddSignOptimizer'
+        
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -612,20 +592,20 @@ class MpiGGTOptimizer(tf.contrib.opt.GGTOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.GGTOptimizer.__init__(self, **kwargs)
         print("tf.train.GGTOptimizer Called")    
-        #     train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
-        # use_locking=False,
-        # name='GGT',
-        # window=10,
-        # eps=0.0001,
-        # svd_eps=1e-06,
-        # sigma_eps=0.01).minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
-        # use_locking=False,
-        # name='GGT',
-        # window=10,
-        # eps=0.0001,
-        # svd_eps=1e-06,
-        # sigma_eps=0.01).minimize(v_loss)
+            train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        use_locking=False,
+        name='GGT',
+        window=10,
+        eps=0.0001,
+        svd_eps=1e-06,
+        sigma_eps=0.01).minimize(pi_loss)
+        train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        use_locking=False,
+        name='GGT',
+        window=10,
+        eps=0.0001,
+        svd_eps=1e-06,
+        sigma_eps=0.01).minimize(v_loss)
 
    
 
@@ -670,11 +650,7 @@ class MpiLARSOptimizer(tf.contrib.opt.LARSOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.LARSOptimizer.__init__(self, **kwargs)
         print("tf.train.LARSOptimizer Called")    
-        #      beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam'
+        
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -718,20 +694,20 @@ class MpiLazyAdamGSOptimizer(tf.contrib.opt.LazyAdamGSOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.LazyAdamGSOptimizer.__init__(self, **kwargs)
         print("tf.train.LazyAdamGSOptimizer Called")    
-        #     train_pi = MpiAdamOptimizer(global_step=0,
-        # learning_rate=pi_lr,
-        # beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam').minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(global_step=0,
-        # learning_rate=vf_lr,
-        # beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam').minimize(v_loss)
+            train_pi = MpiAdamOptimizer(global_step=0,
+        learning_rate=pi_lr,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(pi_loss)
+        train_v = MpiAdamOptimizer(global_step=0,
+        learning_rate=vf_lr,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(v_loss)
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -775,16 +751,7 @@ class MpiLazyAdamOptimizer(tf.contrib.opt.LazyAdamOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.LazyAdamOptimizer.__init__(self, **kwargs)
         print("tf.train.LazyAdamOptimizer Called")    
-        # train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam').minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam').minimize(v_loss)
+        
 
    
 
@@ -829,18 +796,6 @@ class MpiMomentumWOptimizer(tf.contrib.opt.MomentumWOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.MomentumWOptimizer.__init__(self, **kwargs)
         print("tf.train.AdamOptimizer Called")    
-        # train_pi = MpiAdamOptimizer(weight_decay=0.000001,
-        # learning_rate=pi_lr,
-        # momentum=0.01,
-        # use_locking=False,
-        # name='MomentumW',
-        # use_nesterov=False).minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(weight_decay=0.000001,
-        # learning_rate=vf_lr,
-        # momentum=0.01,
-        # use_locking=False,
-        # name='MomentumW',
-        # use_nesterov=False).minimize(v_loss)
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -884,16 +839,6 @@ class MpiNadamOptimizer(tf.contrib.opt.NadamOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.NadamOptimizer.__init__(self, **kwargs)
         print("tf.contrib.opt.NadamOptimizer Called")    
-        # train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam').minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
-        # beta2=0.999,
-        # epsilon=1e-08,
-        # use_locking=False,
-        # name='Adam').minimize(v_loss)
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -937,16 +882,6 @@ class MpiPowerSignOptimizer(tf.contrib.opt.PowerSignOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.PowerSignOptimizer.__init__(self, **kwargs)
         print("tf.contrib.opt.PowerSignOptimizer Called")    
-        # train_pi = MpiAdamOptimizer(learning_rate=pi_lr,base=math.e,
-        # beta=0.9,
-        # sign_decay_fn=None,
-        # use_locking=False,
-        # name='PowerSignOptimizer').minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(learning_rate=vf_lr,base=math.e,
-        # beta=0.9,
-        # sign_decay_fn=None,
-        # use_locking=False,
-        # name='PowerSignOptimizer').minimize(v_loss)
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
@@ -989,36 +924,7 @@ class MpiShampooOptimizer(tf.contrib.opt.ShampooOptimizer):
     def __init__(self, **kwargs):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.ShampooOptimizer.__init__(self, **kwargs)
-        print("tf.contrib.opt.ShampooOptimizer Called")    
-        # train_pi = MpiAdamOptimizer(global_step=0,
-        # max_matrix_size=768,
-        # gbar_decay=0.0,
-        # gbar_weight=1.0,
-        # mat_gbar_decay=1.0,
-        # mat_gbar_weight=1.0,
-        # learning_rate=1.0,
-        # svd_interval=1,
-        # precond_update_interval=1,
-        # epsilon=0.0001,
-        # alpha=0.5,
-        # use_iterative_root=False,
-        # use_locking=False,
-        # name='Shampoo').minimize(pi_loss)
-        # train_v = MpiAdamOptimizer(global_step=0,
-        # max_matrix_size=768,
-        # gbar_decay=0.0,
-        # gbar_weight=1.0,
-        # mat_gbar_decay=1.0,
-        # mat_gbar_weight=1.0,
-        # learning_rate=1.0,
-        # svd_interval=1,
-        # precond_update_interval=1,
-        # epsilon=0.0001,
-        # alpha=0.5,
-        # use_iterative_root=False,
-        # use_locking=False,
-        # name='Shampoo').minimize(v_loss)
-       
+        print("tf.contrib.opt.ShampooOptimizer Called")           
 
     def compute_gradients(self, loss, var_list, **kwargs):
         """

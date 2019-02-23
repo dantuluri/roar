@@ -93,7 +93,7 @@ Vanilla Policy Gradient
 """
 def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, pi_lr=3e-4,
-        vf_lr=1e-3, train_v_iters=80, lam=0.97, max_ep_len=1000,
+        vf_lr=1e-3, train_v_iters=80, lam=0.97, max_ep_len=1000, optimizer='PARAMETER OPTIMIZER',
         logger_kwargs=dict(), save_freq=10):
     """
 
@@ -152,7 +152,7 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
             the current policy and value function.
 
     """
-
+    print('OPTIMIZER: ',optimizer)
     logger = EpochLogger(**logger_kwargs)
     logger.save_config(locals())
 
@@ -198,34 +198,14 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
 
     # Optimizers
     print("learning rate",pi_lr," ",vf_lr)
-    train_pi = MpiAdamOptimizer(global_step=0,
-    max_matrix_size=768,
-    gbar_decay=0.0,
-    gbar_weight=1.0,
-    mat_gbar_decay=1.0,
-    mat_gbar_weight=1.0,
-    learning_rate=1.0,
-    svd_interval=1,
-    precond_update_interval=1,
-    epsilon=0.0001,
-    alpha=0.5,
-    use_iterative_root=False,
-    use_locking=False,
-    name='Shampoo').minimize(pi_loss)
-    train_v = MpiAdamOptimizer(global_step=0,
-    max_matrix_size=768,
-    gbar_decay=0.0,
-    gbar_weight=1.0,
-    mat_gbar_decay=1.0,
-    mat_gbar_weight=1.0,
-    learning_rate=1.0,
-    svd_interval=1,
-    precond_update_interval=1,
-    epsilon=0.0001,
-    alpha=0.5,
-    use_iterative_root=False,
-    use_locking=False,
-    name='Shampoo').minimize(v_loss)
+    train_pi = MpiAdamOptimizer(learning_rate=pi_lr, rho=0.95,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adadelta').minimize(pi_loss)
+    train_v = MpiAdamOptimizer(learning_rate=vf_lr,rho=0.95,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adadelta').minimize(v_loss)
 
 
 

@@ -15,9 +15,8 @@
 .GGTOptimizer
 .LARSOptimizer
 .LazyAdamGSOptimizer
-LazyAdamOptimizer
-MomentumWOptimizer
-MovingAverageOptimizer
+.LazyAdamOptimizer
+.MomentumWOptimizer
 NadamOptimizer
 PowerSignOptimizer
 RegAdagradOptimizer

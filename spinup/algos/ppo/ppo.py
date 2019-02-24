@@ -92,7 +92,7 @@ with early stopping based on approximate KL
 def ppo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
-        target_kl=0.01, logger_kwargs=dict(), save_freq=10):
+        target_kl=0.01, optimizer='PARAMETER OPTIMIZER', logger_kwargs=dict(), save_freq=10):
     """
 
     Args:
@@ -213,8 +213,302 @@ def ppo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     clipfrac = tf.reduce_mean(tf.cast(clipped, tf.float32))
 
     # Optimizers
-    train_pi = MpiAdamOptimizer(learning_rate=pi_lr).minimize(pi_loss)
-    train_v = MpiAdamOptimizer(learning_rate=vf_lr).minimize(v_loss)
+    print("learning rate",pi_lr," ",vf_lr)
+    # train_pi = MpiAdamOptimizer(learning_rate=pi_lr, rho=0.95,
+    #     epsilon=1e-08,
+    #     use_locking=False,
+    #     name='Adadelta').minimize(pi_loss)
+    # train_v = MpiAdamOptimizer(learning_rate=vf_lr,rho=0.95,
+    #     epsilon=1e-08,
+    #     use_locking=False,
+    #     name='Adadelta').minimize(v_loss)
+
+    if optimizer=="AdamOptimizer":
+        train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(pi_loss)
+        train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(v_loss)
+    elif optimizer=="AdadeltaOptimizer":
+        train_pi = MpiAdadeltaOptimizer(learning_rate=pi_lr,rho=0.95,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adadelta').minimize(pi_loss)
+        train_v = MpiAdadeltaOptimizer(learning_rate=vf_lr,rho=0.95,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adadelta').minimize(v_loss)
+    elif optimizer=="AdagradOptimizer":
+        train_pi = MpiAdagradOptimizer(learning_rate=pi_lr,initial_accumulator_value=0.1,
+        use_locking=False,
+        name='Adagrad').minimize(pi_loss)
+        train_v = MpiAdagradOptimizer(learning_rate=vf_lr,initial_accumulator_value=0.1,
+        use_locking=False,
+        name='Adagrad').minimize(v_loss)
+    elif optimizer=="AdamOptimizer":
+        train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(pi_loss)
+        train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(v_loss)
+    elif optimizer=="FtrlOptimizer":
+        train_pi = MpiFtrlOptimizer(learning_rate=pi_lr,            learning_rate_power=-0.5,
+        initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='Ftrl',
+        accum_name=None,
+        linear_name=None,
+        l2_shrinkage_regularization_strength=0.0).minimize(pi_loss)
+        train_v = MpiFtrlOptimizer(learning_rate=vf_lr,            learning_rate_power=-0.5,
+        initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='Ftrl',
+        accum_name=None,
+        linear_name=None,
+        l2_shrinkage_regularization_strength=0.0).minimize(v_loss)
+    elif optimizer=="GradientDescentOptimizer":
+        train_pi = MpiGradientDescentOptimizer(learning_rate=pi_lr, use_locking=False,
+        name='GradientDescent').minimize(pi_loss)
+        train_v = MpiGradientDescentOptimizer(learning_rate=vf_lr, use_locking=False,
+        name='GradientDescent').minimize(v_loss)
+    elif optimizer=="MomentumOptimizer":
+        train_pi = MpiMomentumOptimizer(learning_rate=pi_lr,momentum=0.9,
+        use_locking=False,
+        name='Momentum',
+        use_nesterov=False).minimize(pi_loss)
+        train_v = MpiMomentumOptimizer(learning_rate=vf_lr,momentum=0.9,
+        use_locking=False,
+        name='Momentum',
+        use_nesterov=False).minimize(v_loss)
+    elif optimizer=="ProximalAdagradOptimizer":
+        train_pi = MpiProximalAdagradOptimizer(learning_rate=pi_lr,    initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalAdagrad' ).minimize(pi_loss)
+        train_v = MpiProximalAdagradOptimizer(learning_rate=vf_lr,    initial_accumulator_value=0.1,
+        l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalAdagrad').minimize(v_loss)
+    elif optimizer=="ProximalGradientDescentOptimizer":
+        train_pi = MpiProximalGradientDescentOptimizer(learning_rate=pi_lr,             l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalGradientDescent').minimize(pi_loss)
+        train_v = MpiProximalGradientDescentOptimizer(learning_rate=vf_lr,            l1_regularization_strength=0.0,
+        l2_regularization_strength=0.0,
+        use_locking=False,
+        name='ProximalGradientDescent').minimize(v_loss)
+    elif optimizer=="RMSPropOptimizer":
+        train_pi = MpiRMSPropOptimizer(learning_rate=pi_lr,
+            decay=0.9,
+        momentum=0.0,
+        epsilon=1e-10,
+        use_locking=False,
+        centered=False,
+        name='RMSProp').minimize(pi_loss)
+        train_v = MpiRMSPropOptimizer(learning_rate=vf_lr,
+            decay=0.9,
+        momentum=0.01,
+        epsilon=1e-10,
+        use_locking=False,
+        centered=False,
+        name='RMSProp').minimize(v_loss)
+    elif optimizer=="AdaMaxOptimizer":
+        train_pi = MpiAdaMaxOptimizer(learning_rate=pi_lr, 
+             beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='AdaMax'  ).minimize(pi_loss)
+        train_v = MpiAdaMaxOptimizer(learning_rate=vf_lr,
+             beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='AdaMax'  ).minimize(v_loss)
+    elif optimizer=="AdamGSOptimizer":
+        train_pi = MpiAdamGSOptimizer(learning_rate=pi_lr, 
+             global_step=0,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam'   ).minimize(pi_loss)
+        train_v = MpiAdamGSOptimizer(learning_rate=vf_lr,
+             global_step=0,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam'   ).minimize(v_loss)
+    elif optimizer=="AdamWOptimizer":
+        train_pi = MpiAdamWOptimizer(learning_rate=pi_lr, 
+            weight_decay=0.000001,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='AdamW').minimize(pi_loss)
+        train_v = MpiAdamWOptimizer(learning_rate=vf_lr,
+            weight_decay=0.000001,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='AdamW').minimize(v_loss)
+    elif optimizer=="AddSignOptimizer":
+        train_pi = MpiAddSignOptimizer(learning_rate=pi_lr, 
+            alpha=1.0,
+        beta=0.9,
+        sign_decay_fn=None,
+        use_locking=False,
+        name='AddSignOptimizer').minimize(pi_loss)
+        train_v = MpiAddSignOptimizer(learning_rate=vf_lr,
+           alpha=1.0,
+        beta=0.9,
+        sign_decay_fn=None,
+        use_locking=False,
+        name='AddSignOptimizer').minimize(v_loss)
+    elif optimizer=="GGTOptimizer":
+        train_pi = MpiGGTOptimizer(learning_rate=pi_lr, 
+        beta1=0.9,
+        use_locking=False,
+        name='GGT',
+        window=10,
+        eps=0.0001,
+        svd_eps=1e-06,
+        sigma_eps=0.01).minimize(pi_loss)
+        train_v = MpiGGTOptimizer(learning_rate=vf_lr,
+        beta1=0.9,
+        use_locking=False,
+        name='GGT',
+        window=10,
+        eps=0.0001,
+        svd_eps=1e-06,
+        sigma_eps=0.01).minimize(v_loss)
+    elif optimizer=="LARSOptimizer":
+        train_pi = MpiLARSOptimizer(learning_rate=pi_lr, 
+        momentum=0.9,
+        weight_decay=0.0001,
+        eeta=0.001,
+        epsilon=0.0,
+        name='LARSOptimizer',
+        skip_list=None,
+        use_nesterov=False).minimize(pi_loss)
+        train_v = MpiLARSOptimizer(learning_rate=vf_lr,
+        momentum=0.9,
+        weight_decay=0.0001,
+        eeta=0.001,
+        epsilon=0.0,
+        name='LARSOptimizer',
+        skip_list=None,
+        use_nesterov=False).minimize(v_loss)
+    elif optimizer=="LazyAdamGSOptimizer":
+        train_pi = MpiLazyAdamGSOptimizer(global_step=0,
+        learning_rate=pi_lr,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(pi_loss)
+        train_v = MpiLazyAdamGSOptimizer(global_step=0,
+        learning_rate=vf_lr,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Adam').minimize(v_loss)
+    elif optimizer=="LazyAdamOptimizer":
+        train_pi = MpiLazyAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='LazyAdam').minimize(pi_loss)
+        train_v = MpiLazyAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='LazyAdam').minimize(v_loss)
+    elif optimizer=="MomentumWOptimizer":
+        train_pi = MpiMomentumWOptimizer(weight_decay=0.000001,
+        learning_rate=pi_lr,
+        momentum=0.01,
+        use_locking=False,
+        name='MomentumW',
+        use_nesterov=False).minimize(pi_loss)
+        train_v = MpiMomentumWOptimizer(weight_decay=0.000001,
+        learning_rate=vf_lr,
+        momentum=0.01,
+        use_locking=False,
+        name='MomentumW',
+        use_nesterov=False).minimize(v_loss)
+    elif optimizer=="NadamOptimizer":
+        train_pi = MpiNadamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Nadam').minimize(pi_loss)
+        train_v = MpiNadamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-08,
+        use_locking=False,
+        name='Nadam').minimize(v_loss)
+    elif optimizer=="PowerSignOptimizer":
+        train_pi = MpiPowerSignOptimizer(learning_rate=pi_lr,base=math.e,
+        beta=0.9,
+        sign_decay_fn=None,
+        use_locking=False,
+        name='PowerSignOptimizer').minimize(pi_loss)
+        train_v = MpiPowerSignOptimizer(learning_rate=vf_lr,base=math.e,
+        beta=0.9,
+        sign_decay_fn=None,
+        use_locking=False,
+        name='PowerSignOptimizer').minimize(v_loss)
+    elif optimizer=="ShampooOptimizer":
+        train_pi = MpiShampooOptimizer(global_step=0,
+        max_matrix_size=768,
+        gbar_decay=0.0,
+        gbar_weight=1.0,
+        mat_gbar_decay=1.0,
+        mat_gbar_weight=1.0,
+        learning_rate=pi_lr,
+        svd_interval=1,
+        precond_update_interval=1,
+        epsilon=0.0001,
+        alpha=0.5,
+        use_iterative_root=False,
+        use_locking=False,
+        name='Shampoo').minimize(pi_loss)
+        train_v = MpiShampooOptimizer(global_step=0,
+        max_matrix_size=768,
+        gbar_decay=0.0,
+        gbar_weight=1.0,
+        mat_gbar_decay=1.0,
+        mat_gbar_weight=1.0,
+        learning_rate=vf_lr,
+        svd_interval=1,
+        precond_update_interval=1,
+        epsilon=0.0001,
+        alpha=0.5,
+        use_iterative_root=False,
+        use_locking=False,
+        name='Shampoo').minimize(v_loss)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())

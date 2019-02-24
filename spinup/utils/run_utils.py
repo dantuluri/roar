@@ -372,7 +372,7 @@ class ExperimentGrid:
             # Except, however, when the parameter is 'seed'. Seed is handled
             # differently so that runs of the same experiment, with different 
             # seeds, will be grouped by experiment name.
-            if (len(v)>1 or inn) and not(k=='seed'):
+            if (len(v)>0 or inn) and not(k=='seed'):
 
                 # Use the shorthand if available, otherwise the full name.
                 param_name = sh if sh is not None else k

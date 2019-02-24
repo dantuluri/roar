@@ -5,7 +5,7 @@ import gym
 import time
 import spinup.algos.vpg.core as core
 from spinup.utils.logx import EpochLogger
-from spinup.utils.mpi_tf import MpiAdamOptimizer, sync_all_params
+from spinup.utils.mpi_tf import MpiAdamOptimizer, sync_all_params, MpiAdadeltaOptimizer, MpiAdagradOptimizer, MpiFtrlOptimizer, MpiGradientDescentOptimizer, MpiMomentumOptimizer, MpiProximalAdagradOptimizer, MpiProximalGradientDescentOptimizer, MpiRMSPropOptimizer, MpiAdaMaxOptimizer, MpiAdamGSOptimizer, MpiAdamWOptimizer, MpiAddSignOptimizer, MpiGGTOptimizer, MpiLARSOptimizer, MpiLazyAdamGSOptimizer, MpiLazyAdamOptimizer, MpiMomentumWOptimizer, MpiNadamOptimizer, MpiPowerSignOptimizer, MpiShampooOptimizer
 from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
 
 
@@ -198,17 +198,27 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
 
     # Optimizers
     print("learning rate",pi_lr," ",vf_lr)
-    train_pi = MpiAdamOptimizer(learning_rate=pi_lr, rho=0.95,
+    # train_pi = MpiAdamOptimizer(learning_rate=pi_lr, rho=0.95,
+    #     epsilon=1e-08,
+    #     use_locking=False,
+    #     name='Adadelta').minimize(pi_loss)
+    # train_v = MpiAdamOptimizer(learning_rate=vf_lr,rho=0.95,
+    #     epsilon=1e-08,
+    #     use_locking=False,
+    #     name='Adadelta').minimize(v_loss)
+
+    if optimizer=="AdamOptimizer":
+        train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
+        beta2=0.999,
         epsilon=1e-08,
         use_locking=False,
-        name='Adadelta').minimize(pi_loss)
-    train_v = MpiAdamOptimizer(learning_rate=vf_lr,rho=0.95,
+        name='Adam').minimize(pi_loss)
+        train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
+        beta2=0.999,
         epsilon=1e-08,
         use_locking=False,
-        name='Adadelta').minimize(v_loss)
-
-
-    if optimizer=="AdadeltaOptimizer":
+        name='Adam').minimize(v_loss)
+    elif optimizer=="AdadeltaOptimizer":
         train_pi = MpiAdadeltaOptimizer(learning_rate=pi_lr,rho=0.95,
         epsilon=1e-08,
         use_locking=False,
@@ -260,11 +270,11 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         train_v = MpiGradientDescentOptimizer(learning_rate=vf_lr, use_locking=False,
         name='GradientDescent').minimize(v_loss)
     elif optimizer=="MomentumOptimizer":
-        train_pi = MpiMomentumOptimizer(learning_rate=pi_lr,momentum=0.01,
+        train_pi = MpiMomentumOptimizer(learning_rate=pi_lr,momentum=0.9,
         use_locking=False,
         name='Momentum',
         use_nesterov=False).minimize(pi_loss)
-        train_v = MpiMomentumOptimizer(learning_rate=vf_lr,momentum=0.01,
+        train_v = MpiMomentumOptimizer(learning_rate=vf_lr,momentum=0.9,
         use_locking=False,
         name='Momentum',
         use_nesterov=False).minimize(v_loss)
@@ -319,7 +329,6 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     elif optimizer=="AdamGSOptimizer":
         train_pi = MpiAdamGSOptimizer(learning_rate=pi_lr, 
              global_step=0,
-        learning_rate=0.001,
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-08,
@@ -327,7 +336,6 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         name='Adam'   ).minimize(pi_loss)
         train_v = MpiAdamGSOptimizer(learning_rate=vf_lr,
              global_step=0,
-        learning_rate=0.001,
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-08,
@@ -336,7 +344,6 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     elif optimizer=="AdamWOptimizer":
         train_pi = MpiAdamWOptimizer(learning_rate=pi_lr, 
             weight_decay=0.000001,
-        learning_rate=0.001,
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-08,
@@ -344,7 +351,6 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         name='AdamW').minimize(pi_loss)
         train_v = MpiAdamWOptimizer(learning_rate=vf_lr,
             weight_decay=0.000001,
-        learning_rate=0.001,
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-08,
@@ -382,17 +388,21 @@ def vpg(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         sigma_eps=0.01).minimize(v_loss)
     elif optimizer=="LARSOptimizer":
         train_pi = MpiLARSOptimizer(learning_rate=pi_lr, 
-             beta1=0.9,
-        beta2=0.999,
-        epsilon=1e-08,
-        use_locking=False,
-        name='Adam').minimize(pi_loss)
+        momentum=0.9,
+        weight_decay=0.0001,
+        eeta=0.001,
+        epsilon=0.0,
+        name='LARSOptimizer',
+        skip_list=None,
+        use_nesterov=False).minimize(pi_loss)
         train_v = MpiLARSOptimizer(learning_rate=vf_lr,
-             beta1=0.9,
-        beta2=0.999,
-        epsilon=1e-08,
-        use_locking=False,
-        name='Adam').minimize(v_loss)
+        momentum=0.9,
+        weight_decay=0.0001,
+        eeta=0.001,
+        epsilon=0.0,
+        name='LARSOptimizer',
+        skip_list=None,
+        use_nesterov=False).minimize(v_loss)
     elif optimizer=="LazyAdamGSOptimizer":
         train_pi = MpiLazyAdamGSOptimizer(global_step=0,
         learning_rate=pi_lr,

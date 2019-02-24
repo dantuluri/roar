@@ -591,21 +591,7 @@ class MpiGGTOptimizer(tf.contrib.opt.GGTOptimizer):
     def __init__(self, **kwargs):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.GGTOptimizer.__init__(self, **kwargs)
-        print("tf.train.GGTOptimizer Called")    
-            train_pi = MpiAdamOptimizer(learning_rate=pi_lr,beta1=0.9,
-        use_locking=False,
-        name='GGT',
-        window=10,
-        eps=0.0001,
-        svd_eps=1e-06,
-        sigma_eps=0.01).minimize(pi_loss)
-        train_v = MpiAdamOptimizer(learning_rate=vf_lr,beta1=0.9,
-        use_locking=False,
-        name='GGT',
-        window=10,
-        eps=0.0001,
-        svd_eps=1e-06,
-        sigma_eps=0.01).minimize(v_loss)
+        print("tf.train.GGTOptimizer Called")   
 
    
 
@@ -694,20 +680,7 @@ class MpiLazyAdamGSOptimizer(tf.contrib.opt.LazyAdamGSOptimizer):
         self.comm = MPI.COMM_WORLD
         tf.contrib.opt.LazyAdamGSOptimizer.__init__(self, **kwargs)
         print("tf.train.LazyAdamGSOptimizer Called")    
-            train_pi = MpiAdamOptimizer(global_step=0,
-        learning_rate=pi_lr,
-        beta1=0.9,
-        beta2=0.999,
-        epsilon=1e-08,
-        use_locking=False,
-        name='Adam').minimize(pi_loss)
-        train_v = MpiAdamOptimizer(global_step=0,
-        learning_rate=vf_lr,
-        beta1=0.9,
-        beta2=0.999,
-        epsilon=1e-08,
-        use_locking=False,
-        name='Adam').minimize(v_loss)
+
    
 
     def compute_gradients(self, loss, var_list, **kwargs):
